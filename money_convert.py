@@ -60,29 +60,36 @@ def print_converted(to_words):
 
     try:
         to_words = float(to_words)
-        assert 0 < to_words < 10000, "Input must be grater then zero"
+        assert 0 < to_words < 10000, "Input must be grater then zero and no more than 10000"
     except AssertionError as value_err:
         raise value_err
     except ValueError as value_err:
-        print(f"Скрипт не поддерживает данный символ: {value_err}", file=sys.stderr)
+        print(f"That script supports only integer, float, double: {value_err}", file=sys.stderr)
         return
 
     grn = int(to_words - to_words % 1)
     kop = int(round((to_words % 1), 2) * 100)
 
-    assert kop < 100, "Та быть не может... Копеек бывает масимум 99"
+    assert kop < 100, "It's kind of mistake. Pennies may no greater than 99"
 
     # DEBUG
     #print(f"{grn=}, {kop=}")
 
-    def convert(x, i=10):
+    def convert(x):
+        """
+        :param x: INT, FLOAT to convert
+        :return: integer
+        """
+
         if x in less_then_10:
             if x == 0:
                 pass
             else:
                 print(less_then_10[x], end=" ")
                 return x
+
         elif (x // 1000) in less_then_10 and x > 1000:
+            # Worst case. Should be refactored in the future
             print(less_then_10[(x // 1000)], end=" ")
             if x // 1000 == 1 or x // 1000 % 10 == 1:
                 print("тысяча", end=" ")
@@ -92,27 +99,32 @@ def print_converted(to_words):
                 print("тысяч", end=" ")
             convert(x % 1000)
             return x
+
         elif (x // 100) * 100 in hundreds:
             print(hundreds[(x // 100) * 100], end=" ")
             convert(x % 100)
             return x
+
         elif x in grater_then_10 and 11 <= x <= 19:
             print(grater_then_10[x], end=" ")
             convert(x % 1)
             return x
+
         elif (x // 10) * 10 in dozens:
             print(dozens[(x // 10) * 10], end=" ")
             convert(x % 10)
             return x
+
         else:
-            convert(int(x / i))
-            ## DEBUG
-            print("more convert")
+            # DEBUG
+            # Unexpected iteration.
+            print(f"One more convert! {i=}", file=sys.stderr)
+            convert(int(x / 10))
 
     convert(grn)
-    if (grn == 1 or grn % 10 == 1) and 10 < grn > 20:
+    if (grn == 1 or grn % 10 == 1) and (10 > grn or grn > 20):
         print("гривна", end=" ")
-    elif (1 < grn < 5 or 2 <= grn % 10 <= 4) and 10 < grn > 20:
+    elif (1 < grn < 5 or 2 <= grn % 10 <= 4) and (10 > grn or grn > 20):
         print("гривны", end=" ")
     elif grn == 0:
         print("ноль гривен", end=" ")
@@ -120,14 +132,15 @@ def print_converted(to_words):
         print("гривен", end=" ")
 
     convert(kop)
-    if (kop == 1 or kop % 10 == 1) and 10 < kop > 20:
+    if (kop == 1 or kop % 10 == 1) and (10 > kop or kop > 20):
         print("копейка")
-    elif (1 < kop < 5 or 2 <= kop % 10 <= 4) and 10 < kop > 20:
+    elif (1 < kop < 5 or 2 <= kop % 10 <= 4) and (10 > kop or kop > 20):
         print("копейки")
     elif kop == 0:
-        print("ноль копеек")
+        print("ровно")
     else:
         print("копеек")
+
     print() # empty line ;)
 
 
