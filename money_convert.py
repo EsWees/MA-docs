@@ -5,9 +5,10 @@ import sys
 
 """ Realize convert functional from int or float to words """
 
-
 def print_converted(to_words):
     """The function do convert from int or float to words"""
+    print(to_words, end=" ")
+
     less_then_10 = {
         0: "ноль",
         1: "одна",
@@ -59,15 +60,20 @@ def print_converted(to_words):
 
     try:
         to_words = float(to_words)
+        assert 0 < to_words < 10000, "Input must be grater then zero"
+    except AssertionError as value_err:
+        raise value_err
     except ValueError as value_err:
         print(f"Скрипт не поддерживает данный символ: {value_err}", file=sys.stderr)
-        exit(1)
+        return
 
     grn = int(to_words - to_words % 1)
-    kop = int((to_words % 1) * 100)
+    kop = int(round((to_words % 1), 2) * 100)
 
-    ## DEBUG
-    # print(f"{grn=}, {kop=}")
+    assert kop < 100, "Та быть не может... Копеек бывает масимум 99"
+
+    # DEBUG
+    #print(f"{grn=}, {kop=}")
 
     def convert(x, i=10):
         if x in less_then_10:
@@ -76,13 +82,23 @@ def print_converted(to_words):
             else:
                 print(less_then_10[x], end=" ")
                 return x
+        elif (x // 1000) in less_then_10 and x > 1000:
+            print(less_then_10[(x // 1000)], end=" ")
+            if x // 1000 == 1 or x // 1000 % 10 == 1:
+                print("тысяча", end=" ")
+            elif 1 < x // 1000 < 5 or 2 <= x // 1000 % 10 <= 4:
+                print("тысячи", end=" ")
+            else:
+                print("тысяч", end=" ")
+            convert(x % 1000)
+            return x
         elif (x // 100) * 100 in hundreds:
             print(hundreds[(x // 100) * 100], end=" ")
             convert(x % 100)
             return x
         elif x in grater_then_10 and 11 <= x <= 19:
             print(grater_then_10[x], end=" ")
-            convert(x % x)
+            convert(x % 1)
             return x
         elif (x // 10) * 10 in dozens:
             print(dozens[(x // 10) * 10], end=" ")
@@ -91,41 +107,41 @@ def print_converted(to_words):
         else:
             convert(int(x / i))
             ## DEBUG
-            # print(f"convert(int({x / i})")
+            print("more convert")
 
-    # TODO: реализовать вывод слов
-    # 1 тысяча
-    # 2-4 тысячи
-    # 5 тысяч
     convert(grn)
-    # гривны, гривен, гривна
+    if (grn == 1 or grn % 10 == 1) and 10 < grn > 20:
+        print("гривна", end=" ")
+    elif (1 < grn < 5 or 2 <= grn % 10 <= 4) and 10 < grn > 20:
+        print("гривны", end=" ")
+    elif grn == 0:
+        print("ноль гривен", end=" ")
+    else:
+        print("гривен", end=" ")
+
     convert(kop)
-    # копейка, копеек, копейки
+    if (kop == 1 or kop % 10 == 1) and 10 < kop > 20:
+        print("копейка")
+    elif (1 < kop < 5 or 2 <= kop % 10 <= 4) and 10 < kop > 20:
+        print("копейки")
+    elif kop == 0:
+        print("ноль копеек")
+    else:
+        print("копеек")
     print() # empty line ;)
 
 
-try:
-    print(f"Надо писать всякую хрень:", end=" ", file=sys.stdout)
-    user_input = float(input())
-except ValueError as value_err:
-    print(f"Скрипт не поддерживает данный символ: {value_err}", file=sys.stderr)
-    exit(1)
+def test():
+    try:
+        print(f"Please type here a number:", end=" ", file=sys.stdout)
+        user_input = float(input())
+    except ValueError as value_err:
+        pass
+        print(f"This is script does not support a charsets: {value_err}", file=sys.stderr)
+        return
+    print_converted(user_input)
+    print()
 
-print_converted(user_input)
-print()
 
-print_converted("9.99")
-print_converted("194.99")
-print_converted("10.50")
-print_converted("12.43")
-print_converted("22.30")
-print_converted("300000.00")
-
-# TODO: need a fix when x less than 0
-print_converted("-26.36")  ## Какая-то лажа
-
-print_converted("6.17")
-print_converted("9.81")
-print_converted("5.62")
-
-print_converted("d")
+if __name__  ==  "__main__":
+    test()
