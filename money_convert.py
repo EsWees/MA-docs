@@ -119,7 +119,7 @@ def print_converted(to_words):
         else:
             # DEBUG
             # Unexpected iteration.
-            print(f"One more convert! {i=}", file=sys.stderr)
+            print(f"One more convert! {x=}", file=sys.stderr)
             convert(int(x / 10))
 
     convert(grn)
