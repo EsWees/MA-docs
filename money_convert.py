@@ -5,6 +5,7 @@ import sys
 
 """ Realize convert functional from int or float to words """
 
+
 def print_converted(to_words):
     """The function do convert from int or float to words"""
     print(to_words, end=" ")
@@ -67,13 +68,13 @@ def print_converted(to_words):
         print(f"That script supports only integer, float, double: {value_err}", file=sys.stderr)
         return
 
-    grn = int(to_words - to_words % 1)
-    kop = int(round((to_words % 1), 2) * 100)
+    grn = int(to_words)
+    kop = int(to_words * 100) % 100
 
     assert kop < 100, "It's kind of mistake. Pennies may no greater than 99"
 
     # DEBUG
-    #print(f"{grn=}, {kop=}")
+    # print(f"{grn=}, {kop=}")
 
     def convert(x):
         """
@@ -141,7 +142,7 @@ def print_converted(to_words):
     else:
         print("копеек")
 
-    print() # empty line ;)
+    print()  # empty line ;)
 
 
 def test():
@@ -156,5 +157,5 @@ def test():
     print()
 
 
-if __name__  ==  "__main__":
+if __name__ == "__main__":
     test()
