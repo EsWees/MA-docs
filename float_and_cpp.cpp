@@ -18,5 +18,10 @@ int main() {
 		<< fmod(testing, 1) * 100
 		<< std::endl;
 
+/*
+Type translation: 45.9 int(testing) = 45
+45.9 % 1 * 100 = fmod(45.9, 1) * 100 = 90
+*/
+
 	return 0;
 }
