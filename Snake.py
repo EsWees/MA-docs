@@ -1,238 +1,246 @@
-#!/usr/bin/env python3.8
+#!/usr/bin/env python3
 
-# Import libs
-import os
-import time
-import random
+# Import pygame main lib
+import pygame
+
+# For using randint, choice, randrange
+from random import randint, choice, randrange
+
+# For sleep function
+from time import sleep
+
+import argparse
+
+# setup bind keyboard
+from pygame.locals import (
+    K_UP,
+    K_DOWN,
+    K_LEFT,
+    K_RIGHT,
+    K_ESCAPE,
+    KEYDOWN,
+    QUIT,
+)
+
+parser = argparse.ArgumentParser(description='The Python Snake game')
+parser.add_argument('-a', '--auto', action='store_const', const=True, help='Try to play in auto mode')
+
+args = parser.parse_args()
+
+print(f'{args=}')
+
+# Define screen size
+FIELD_WIDTH = FIELD_HEIGHT = 80
+SCREEN_WIDTH = SCREEN_HEIGHT = 800
+
+FIELD_ITEM_WIDTH = int(SCREEN_WIDTH / FIELD_WIDTH)
+FIELD_ITEM_HEIGHT = int(SCREEN_HEIGHT / FIELD_HEIGHT)
+
+# Make empty bitmap
+# for j in range(FIELD_HEIGHT):
+#     for i in range(FIELD_WIDTH):
+#         SCREEN_MAP[i][j] = 0
+SCREEN_MAP = [[0 for i in range(0, FIELD_WIDTH, 1)] for j in range(0, FIELD_HEIGHT, 1)]
+
+# Set the screen
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# Should be a Class or magic function
+SPEED = 0.05
 
 
-def clear(func):
-    """Detect OS. Set clear function"""
-    def screen():
-        if os.name == 'nt':
-            clear = os.system('cls')
+# Define a Snake object as a sprite
+class Snake(pygame.sprite.Sprite):
+    def __init__(self, x, y, length=5):
+        super(Snake, self).__init__()
+
+        self.surf = pygame.Surface((
+            FIELD_ITEM_WIDTH,
+            FIELD_ITEM_HEIGHT
+        ))
+        self.surf.fill((0, 0, 255))
+        self.rect = self.surf.get_rect()
+
+        self.length = length
+        SCREEN_MAP[x][y] = self.length
+        self.x, self.y = x, y
+        self.movements = [self.move_right, self.move_left, self.move_up, self.move_down]
+        self.move = choice(self.movements)
+
+    def step(self):
+        SCREEN_MAP[self.x][self.y] = self.length - 1
+        if args.auto:
+            try:
+                self.move()
+            except Exception as error:
+                print(f"Oops! {error.__class__.__name__}. {error=}")
+                self.auto_move()
+                pass
         else:
-            clear = os.system('clear')
-        func()
-    return screen
+            self.move()
+
+    def get_position(self):
+        return self.x * FIELD_ITEM_WIDTH, self.y * FIELD_ITEM_HEIGHT
+
+    def move_up(self) -> tuple:
+        self.move = self.move_up
+        if 0 < self.y and SCREEN_MAP[self.x][self.y - 1] < 1:
+            self.y -= 1
+        elif SCREEN_MAP[self.x][self.y - 1] > 1:
+            raise EOFError
+        else:
+            raise IndexError
+        return self.x, self.y
+
+    def move_down(self) -> tuple:
+        self.move = self.move_down
+        if self.y < FIELD_WIDTH - 1 and SCREEN_MAP[self.x][self.y + 1] < 1:
+            self.y += 1
+        elif SCREEN_MAP[self.x][self.y + 1] > 1:
+            raise EOFError
+        else:
+            raise IndexError
+        return self.x, self.y
+
+    def move_left(self) -> tuple:
+        self.move = self.move_left
+        if 0 < self.x and SCREEN_MAP[self.x - 1][self.y] < 1:
+            self.x -= 1
+        elif SCREEN_MAP[self.x - 1][self.y] > 1:
+            raise EOFError
+        else:
+            raise IndexError
+        return self.x, self.y
+
+    def move_right(self) -> tuple:
+        self.move = self.move_right
+        if self.x < FIELD_HEIGHT - 1 and SCREEN_MAP[self.x + 1][self.y] < 1:
+            self.x += 1
+        elif SCREEN_MAP[self.x + 1][self.y] > 1:
+            raise EOFError
+        else:         
+            raise IndexError
+        return self.x, self.y
+
+    def auto_move(self) -> tuple:
+        if self.x < FIELD_HEIGHT and SCREEN_MAP[self.x + 1][self.y] < 1:
+            self.x += 1
+        elif 0 < self.x and SCREEN_MAP[self.x - 1][self.y] > 1:
+            self.x -= 1
+        elif self.y < FIELD_WIDTH and SCREEN_MAP[self.x][self.y + 1] > 1:
+            self.y += 1
+        elif 0 < self.y and SCREEN_MAP[self.x][self.y - 1] < 1:
+            self.y -= 1
+        return self.x, self.y
 
 
-def new_dot(x=None, y=None):
-    """Makes new dot on the field"""
-    if x and y:
-        field[x][y] = -1
-    else:
-        field[random.randint(0, min(m, n) - 1)][random.randint(0, min(m, n) - 1)] = -1
+# Define a Dot object as a sprite
+class Dot(pygame.sprite.Sprite):
+    def __init__(self, x=None, y=None):
+        # I do not know what is the "super" object
+        super(Dot, self).__init__()
+
+        self.surf = pygame.Surface((
+            FIELD_ITEM_WIDTH,
+            FIELD_ITEM_HEIGHT
+        ))
+
+        self.surf.fill((255, 0, 0))
+        self.rect = self.surf.get_rect()
+        self.surf.set_alpha(255)
+
+        if x is not None is not y:
+            SCREEN_MAP[x][y] = -1
+        else:
+            x, y = randint(0, FIELD_WIDTH - 1), randint(0, FIELD_HEIGHT - 1)
+            SCREEN_MAP[x][y] = -1
+
+        self.position = [FIELD_ITEM_WIDTH * x, FIELD_ITEM_HEIGHT * y]
 
 
-@clear
-def show_field():
-    """show actual field with snake"""
-    for j in range(n + 1):
-        for i in range(m + 1):
-
-            # Empty field
-            if field[i][j] == 0:
-                print(' ', end=' ')
-
-            # Show the point
-            elif field[i][j] == -1:
-                print('\033[89m\033[1m0\033[0m', end=' ')
-
-            # Show the Snake head
-            elif field[i][j] == snake_length[0]:
-                print('\033[91m*\033[0m', end=' ')
-
-            # Show the Snake tail            
-            elif field[i][j] == 1:
-                print('\033[93m*\033[0m', end=' ')
-
-            # Show the Snake body
-            else:
-                print('\033[92m*\033[0m', end=' ')
-
-            # Show right corner of the field
-            if i == m:
-                print('|', end='')
-
-            # Tail control
-            if field[i][j] > 0:
-                field[i][j] -= 1
-
-        # New line
-        print('')
-
-    # Show buttom line
-    print('_' * (n * 2 + 2), end="|\n")
-    print(f'Score: {snake_dots[0]}')
+# Event handler
+def event_processing():
+    # process events
+    for event in pygame.event.get():
+        # if key pressed
+        if event.type == KEYDOWN:
+            # ESC event
+            if event.key == K_ESCAPE:
+                return False
+            # UP event
+            elif event.key == K_UP:
+                snake.move = snake.move_up
+            # DOWN event
+            elif event.key == K_DOWN:
+                snake.move = snake.move_down
+            # LEFT event
+            elif event.key == K_LEFT:
+                snake.move = snake.move_left
+            # RIGHT event
+            elif event.key == K_RIGHT:
+                snake.move = snake.move_right
+        # if got quit event
+        elif event.type == QUIT:
+            return False
+    return True
 
 
-def post(func):
+# Setup Snake
+snake = Snake(FIELD_WIDTH // 2, FIELD_HEIGHT // 2)
+
+
+def main():
     """
-    Post move as a decorator
-    :param: function
-    :return: link to post_moving function
+    the main function. The Snake game
     """
-    def post_moving(x, y):
-        #print(f"{x=}, {y=}")
-        x, y = func(x, y)
-        if field[x][y] == -1:
-            step[0] /= 2
-            snake_length[0] += 2
-            snake_dots[0] += 1
-            new_dot()
-        field[x][y] = snake_length[0]
-        show_field()
-        time.sleep(step[0])
-        #clear()
-        return x, y
-    return post_moving
-        
-    
-@post
-def move_up(x:int, y:int) -> tuple:
-    field[x][y] = snake_length[0] - 1
-    if 0 < y and field[x][y - 1] < 1:
-        y -= 1
-    elif field[x][y - 1] > 1:
-        raise EOFError
-    else:
-        raise IndexError
-    return x, y
+    # Init pygame module
+    pygame.init()
+
+    point = pygame.Surface((
+        FIELD_ITEM_WIDTH,
+        FIELD_ITEM_HEIGHT
+    ))
+
+    # Setup Target
+    target = Dot()
+
+    # main loop
+    while event_processing():
+        snake.step()
+
+        # Screen filling
+        screen.fill((255, 255, 255))
+
+        for i in range(FIELD_WIDTH):
+            for j in range(FIELD_HEIGHT):
+                # Background
+                point.fill((0, randint(99, 100), randint(0, 20)))
+                screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
+
+                # Draw the dot target
+                if SCREEN_MAP[i][j] == -1:
+                    screen.blit(target.surf, target.position)
+
+                # Draw the snake
+                if SCREEN_MAP[i][j] == snake.length - 1:
+                    snake.surf.fill((0, 200, 255))
+                    screen.blit(snake.surf, snake.get_position())
+
+                # Snake tail control
+                if SCREEN_MAP[i][j] > 0:
+                    point.fill((100, 255, 200))
+                    screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
+                    SCREEN_MAP[i][j] -= 1
+
+        # Show the bitmap
+        pygame.display.flip()
+
+        # Speed controller
+        sleep(SPEED)
+
+    # Exit from the app with regular exit code
+    pygame.quit()
 
 
-@post
-def move_down(x:int, y:int) -> tuple:
-    field[x][y] = snake_length[0] - 1
-    if y < m - 1 and field[x][y + 1] < 1:
-        y += 1
-    elif field[x][y + 1] > 1:
-        raise EOFError
-    else:
-        raise IndexError
-    return x, y
-
-
-@post
-def move_left(x:int, y:int) -> tuple:
-    field[x][y] = snake_length[0] - 1
-    if 0 < x and field[x - 1][y] < 1:
-        x -= 1
-    elif field[x - 1][y] > 1:
-        raise EOFError
-    else:
-        raise IndexError
-    return x, y
-
-
-@post
-def move_right(x:int, y:int) -> tuple:
-    field[x][y] = snake_length[0] - 1
-    if x < n - 1 and field[x + 1][y] > 1:
-        x += 1
-    elif field[x + 1][y] < 1:
-        raise EOFError
-    else:
-        raise IndexError
-    return x, y
-
-
-@post
-def auto_move(x:int, y:int) -> tuple:
-    if x < n and field[x + 1][y] < 1:
-        x += 1
-    elif 0 < x and field[x - 1][y] > 1:
-        x -= 1
-    elif y < m and field[x][y + 1] > 1:
-        y += 1
-    elif 0 < y and field[x][y - 1] < 1:
-        y -= 1
-    field[x][y] = snake_length[0] - 1
-    return x, y
-
-
-def pause(seconds:int=3) -> None:
-    for i in range(seconds, 1, -1):
-        print(f'New game in {i} second(s)', end='', flush=True)
-        time.sleep(1)
-        print(f'\b' * 500, end='', flush=True)
-
-
-movements = [move_right, move_left, move_up, move_down]
-
-auto_play = True
-
-# Set Snake field
-n = m = 20
-
-
-while True:
-    # start position it is center of the field
-    x = int(n / 2)
-    y = int(m / 2)
-
-    # snake length by default
-    snake_length = [5]
-
-    # use step as a user level (seconds between step)
-    step = [0.5]
-
-    # Uses like a score
-    snake_dots = [0]
-
-    # field[n][m] = {0}
-    field = [[0 for i in range(n + 1)] for j in range(m + 1)]
-    new_dot()
-
-
-    # Will be a new feature.
-    # auto_move function will use this map to reach the -1 field
-    score_field = [[0 for i in range(n + 1)] for j in range(m + 1)]
-    for j in range(n + 1):
-        for i in range(m + 1):
-            score = 0
-            if i + 1 <= n:
-                score += 1
-            elif j + 1 <= m:
-                score += 1
-            elif i - 1 >= 0:
-                score += 1
-            elif j - 1 >= 0:
-                score += 1
-            score_field[i][j] = score
-
-
-    while True:
-        try:
-            if auto_play:
-                func = random.choice(movements)
-                for i in range(random.randrange(1, min(n, m))):
-                    x, y = func(x, y)
-            else:
-                print("Sorry. User game is not implemented yet.")
-                exit(1)
-        except EOFError:
-            if auto_play:
-                x, y = auto_move(x, y)
-            else:
-                print(f'You was bitten by yourself')
-                pause()
-                break
-        except IndexError:
-            if auto_play:
-                x, y = auto_move(x, y)
-            else:
-                print(f'Out Of Range')
-                pause()
-                break
-        except KeyboardInterrupt as err:
-            print("\nStop the Snake game\nPress one more time to finish the program")
-            pause(10)
-            break
-        except Exception as error:
-            print(f'Undefined behavior: {error.__class__.__name__}, error')
-            break
-
-    show_field()
-    print(f'Game Over!')
-
+if __name__ == "__main__":
+    main()
