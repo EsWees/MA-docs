@@ -226,8 +226,11 @@ def main():
     while event_processing():
         if args.auto:
             snake.x, snake.y = ai_move(target.position, snake.position)
-            snake.position = snake.x, snake.y
-            SCREEN_MAP[snake.x][snake.y] = snake.length - 1
+            if SCREEN_MAP[snake.x][snake.y] <= 0:
+                snake.position = snake.x, snake.y
+                SCREEN_MAP[snake.x][snake.y] = snake.length - 1
+            else:
+                raise EOFError
         else:
             snake.step()
 
@@ -261,6 +264,10 @@ def main():
                     point.fill(snake.color)
                     screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
                     SCREEN_MAP[i][j] -= 1
+
+        font1 = pygame.font.Font(None, 50)
+        text1 = font1.render(f"Score {int(snake.length / 5 - 1)}", 0, (255, 255, 255))
+        screen.blit(text1, (10, SCREEN_HEIGHT - 50))
 
         # Show the bitmap
         pygame.display.flip()
