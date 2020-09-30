@@ -24,6 +24,7 @@ from pygame.locals import (
 
 parser = argparse.ArgumentParser(description='The Python Snake game')
 parser.add_argument('-a', '--auto', action='store_const', const=True, help='Try to play in auto mode')
+parser.add_argument('-d', '--dynamic', action='store_const', const=True, default=False, help='Set dynamic background')
 
 args = parser.parse_args()
 
@@ -58,14 +59,17 @@ class Snake(pygame.sprite.Sprite):
             FIELD_ITEM_WIDTH,
             FIELD_ITEM_HEIGHT
         ))
-        self.surf.fill((0, 0, 255))
         self.rect = self.surf.get_rect()
+        self.color = (100, 255, 200) # Light blue
+        self.surf.fill(self.color)
+        self.x, self.y = x, y
+        self.position = x, y
 
         self.length = length
-        SCREEN_MAP[x][y] = self.length
-        self.x, self.y = x, y
         self.movements = [self.move_right, self.move_left, self.move_up, self.move_down]
         self.move = choice(self.movements)
+
+        SCREEN_MAP[x][y] = self.length
 
     def step(self):
         SCREEN_MAP[self.x][self.y] = self.length - 1
@@ -79,11 +83,12 @@ class Snake(pygame.sprite.Sprite):
         else:
             self.move()
 
+        self.position = self.x, self.y
+
     def get_position(self):
         return self.x * FIELD_ITEM_WIDTH, self.y * FIELD_ITEM_HEIGHT
 
     def move_up(self) -> tuple:
-        self.move = self.move_up
         if 0 < self.y and SCREEN_MAP[self.x][self.y - 1] < 1:
             self.y -= 1
         elif SCREEN_MAP[self.x][self.y - 1] > 1:
@@ -93,7 +98,6 @@ class Snake(pygame.sprite.Sprite):
         return self.x, self.y
 
     def move_down(self) -> tuple:
-        self.move = self.move_down
         if self.y < FIELD_WIDTH - 1 and SCREEN_MAP[self.x][self.y + 1] < 1:
             self.y += 1
         elif SCREEN_MAP[self.x][self.y + 1] > 1:
@@ -103,7 +107,6 @@ class Snake(pygame.sprite.Sprite):
         return self.x, self.y
 
     def move_left(self) -> tuple:
-        self.move = self.move_left
         if 0 < self.x and SCREEN_MAP[self.x - 1][self.y] < 1:
             self.x -= 1
         elif SCREEN_MAP[self.x - 1][self.y] > 1:
@@ -113,25 +116,25 @@ class Snake(pygame.sprite.Sprite):
         return self.x, self.y
 
     def move_right(self) -> tuple:
-        self.move = self.move_right
         if self.x < FIELD_HEIGHT - 1 and SCREEN_MAP[self.x + 1][self.y] < 1:
             self.x += 1
         elif SCREEN_MAP[self.x + 1][self.y] > 1:
             raise EOFError
-        else:         
+        else:
             raise IndexError
         return self.x, self.y
 
     def auto_move(self) -> tuple:
-        if self.x < FIELD_HEIGHT and SCREEN_MAP[self.x + 1][self.y] < 1:
+        if self.x +1 < FIELD_HEIGHT and SCREEN_MAP[self.x + 1][self.y] < 1:
             self.x += 1
-        elif 0 < self.x and SCREEN_MAP[self.x - 1][self.y] > 1:
+        elif 0 < self.x -1 and SCREEN_MAP[self.x - 1][self.y] > 1:
             self.x -= 1
-        elif self.y < FIELD_WIDTH and SCREEN_MAP[self.x][self.y + 1] > 1:
+        elif self.y +1 < FIELD_WIDTH and SCREEN_MAP[self.x][self.y + 1] > 1:
             self.y += 1
-        elif 0 < self.y and SCREEN_MAP[self.x][self.y - 1] < 1:
+        elif 0 < self.y -1 and SCREEN_MAP[self.x][self.y - 1] < 1:
             self.y -= 1
         return self.x, self.y
+
 
 
 # Define a Dot object as a sprite
@@ -155,7 +158,11 @@ class Dot(pygame.sprite.Sprite):
             x, y = randint(0, FIELD_WIDTH - 1), randint(0, FIELD_HEIGHT - 1)
             SCREEN_MAP[x][y] = -1
 
-        self.position = [FIELD_ITEM_WIDTH * x, FIELD_ITEM_HEIGHT * y]
+        self.x, self.y = x, y
+        self.position = x, y
+
+    def get_position(self):
+        return self.x * FIELD_ITEM_WIDTH, self.y * FIELD_ITEM_HEIGHT
 
 
 # Event handler
@@ -163,7 +170,7 @@ def event_processing():
     # process events
     for event in pygame.event.get():
         # if key pressed
-        if event.type == KEYDOWN:
+        if event.type == KEYDOWN and not args.auto:
             # ESC event
             if event.key == K_ESCAPE:
                 return False
@@ -185,10 +192,6 @@ def event_processing():
     return True
 
 
-# Setup Snake
-snake = Snake(FIELD_WIDTH // 2, FIELD_HEIGHT // 2)
-
-
 def main():
     """
     the main function. The Snake game
@@ -204,31 +207,58 @@ def main():
     # Setup Target
     target = Dot()
 
+    # Setup Snake
+    snake = Snake(FIELD_WIDTH // 2, FIELD_HEIGHT // 2)
+
+    def ai_move(tgt, snk) -> tuple:
+        tx, ty = tgt
+        sx, sy = snk
+        if tx > sx:
+            return sx + 1, sy
+        elif tx < sx:
+            return sx - 1, sy
+        elif ty > sy:
+            return sx, sy + 1
+        elif ty < sy:
+            return sx, sy - 1
+
     # main loop
     while event_processing():
-        snake.step()
+        if args.auto:
+            snake.x, snake.y = ai_move(target.position, snake.position)
+            snake.position = snake.x, snake.y
+            SCREEN_MAP[snake.x][snake.y] = snake.length - 1
+        else:
+            snake.step()
+
+        if target.position == snake.position:
+            target = Dot()
+            snake.length += 5
+            global SPEED
+            SPEED /= 1.1
 
         # Screen filling
-        screen.fill((255, 255, 255))
+        screen.fill((0, 100, 25))
+        screen.blit(target.surf, target.get_position())
 
-        for i in range(FIELD_WIDTH):
-            for j in range(FIELD_HEIGHT):
-                # Background
-                point.fill((0, randint(99, 100), randint(0, 20)))
-                screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
+        for i in range(0, FIELD_WIDTH):
+            for j in range(0, FIELD_HEIGHT):
+                if args.dynamic:
+                    # Dynamic background
+                    point.fill((0, randint(90, 100), 20))
+                    screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
+                    # Draw the dot target if you using the Dynamic background
+                    if SCREEN_MAP[i][j] == -1:
+                        screen.blit(target.surf, target.get_position())
 
-                # Draw the dot target
-                if SCREEN_MAP[i][j] == -1:
-                    screen.blit(target.surf, target.position)
-
-                # Draw the snake
-                if SCREEN_MAP[i][j] == snake.length - 1:
-                    snake.surf.fill((0, 200, 255))
+                # Snake head
+                if (i, j) == snake.position:
+                    snake.surf.fill((255, 255, 0)) # Yellow
                     screen.blit(snake.surf, snake.get_position())
 
                 # Snake tail control
-                if SCREEN_MAP[i][j] > 0:
-                    point.fill((100, 255, 200))
+                if SCREEN_MAP[i][j] >= 0:
+                    point.fill(snake.color)
                     screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
                     SCREEN_MAP[i][j] -= 1
 
