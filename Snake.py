@@ -22,18 +22,16 @@ from pygame.locals import (
     QUIT,
 )
 
+# Argument parser
 parser = argparse.ArgumentParser(description='The Python Snake game')
 parser.add_argument('-a', '--auto', action='store_const', const=True, help='Try to play in auto mode')
-parser.add_argument('-d', '--dynamic', action='store_const', const=True, default=False, help='Set dynamic background')
-
 args = parser.parse_args()
 
-print(f'{args=}')
-
 # Define screen size
-FIELD_WIDTH = FIELD_HEIGHT = 80
+FIELD_WIDTH = FIELD_HEIGHT = 20
 SCREEN_WIDTH = SCREEN_HEIGHT = 800
 
+# Calculate one item of the game field
 FIELD_ITEM_WIDTH = int(SCREEN_WIDTH / FIELD_WIDTH)
 FIELD_ITEM_HEIGHT = int(SCREEN_HEIGHT / FIELD_HEIGHT)
 
@@ -41,17 +39,54 @@ FIELD_ITEM_HEIGHT = int(SCREEN_HEIGHT / FIELD_HEIGHT)
 # for j in range(FIELD_HEIGHT):
 #     for i in range(FIELD_WIDTH):
 #         SCREEN_MAP[i][j] = 0
-SCREEN_MAP = [[0 for i in range(0, FIELD_WIDTH, 1)] for j in range(0, FIELD_HEIGHT, 1)]
+SCREEN_MAP = [[0 for i in range(0, FIELD_WIDTH)] for j in range(0, FIELD_HEIGHT)]
 
 # Set the screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+# Snake speed movement
 # Should be a Class or magic function
-SPEED = 0.05
+SPEED = 0.5
 
 
-# Define a Snake object as a sprite
+# Define an auto_move function
+def auto_move(future_step) -> tuple:
+    future_x, future_y = future_step
+    if SCREEN_MAP[future_x][future_y] > 1:
+        print(f"AM ==>> {SCREEN_MAP[future_x][future_y]=}")
+
+        if future_x >= 0 and SCREEN_MAP[future_x - 1][future_y] == 0:
+            print(f"LEFT")
+            return future_x - 1, future_y
+
+        if future_x < FIELD_WIDTH and SCREEN_MAP[future_x + 1][future_y] == 0:
+            print(f"RIGHT")
+            return future_x + 1, future_y
+
+        if future_y + 1 < FIELD_HEIGHT and SCREEN_MAP[future_x][future_y + 1] == 0:
+            print(f"UP")
+            return future_x, future_y + 1
+
+        if future_y - 1 >= 0 and SCREEN_MAP[future_x][future_y - 1] == 0:
+            print(f"DOWN")
+            return future_x, future_y - 1
+
+        if SCREEN_MAP[future_x][future_y] == 0:
+            print(f"What ? -_-")
+            return future_x, future_y
+
+    return future_x, future_y
+
+
 class Snake(pygame.sprite.Sprite):
+    """
+    The Snake class shows all of Snake characteristics like as:
+        color
+        rectangle
+        head position
+        length
+    """
+
     def __init__(self, x, y, length=5):
         super(Snake, self).__init__()
 
@@ -60,7 +95,7 @@ class Snake(pygame.sprite.Sprite):
             FIELD_ITEM_HEIGHT
         ))
         self.rect = self.surf.get_rect()
-        self.color = (100, 255, 200) # Light blue
+        self.color = (100, 255, 200)  # Light blue
         self.surf.fill(self.color)
         self.x, self.y = x, y
         self.position = x, y
@@ -69,20 +104,10 @@ class Snake(pygame.sprite.Sprite):
         self.movements = [self.move_right, self.move_left, self.move_up, self.move_down]
         self.move = choice(self.movements)
 
-        SCREEN_MAP[x][y] = self.length
-
     def step(self):
+        """ actually it's can be a wrapper """
         SCREEN_MAP[self.x][self.y] = self.length - 1
-        if args.auto:
-            try:
-                self.move()
-            except Exception as error:
-                print(f"Oops! {error.__class__.__name__}. {error=}")
-                self.auto_move()
-                pass
-        else:
-            self.move()
-
+        self.move()
         self.position = self.x, self.y
 
     def get_position(self):
@@ -124,23 +149,11 @@ class Snake(pygame.sprite.Sprite):
             raise IndexError
         return self.x, self.y
 
-    def auto_move(self) -> tuple:
-        if self.x +1 < FIELD_HEIGHT and SCREEN_MAP[self.x + 1][self.y] < 1:
-            self.x += 1
-        elif 0 < self.x -1 and SCREEN_MAP[self.x - 1][self.y] > 1:
-            self.x -= 1
-        elif self.y +1 < FIELD_WIDTH and SCREEN_MAP[self.x][self.y + 1] > 1:
-            self.y += 1
-        elif 0 < self.y -1 and SCREEN_MAP[self.x][self.y - 1] < 1:
-            self.y -= 1
-        return self.x, self.y
 
-
-
-# Define a Dot object as a sprite
 class Dot(pygame.sprite.Sprite):
+    """ Dot object as a sprite """
+
     def __init__(self, x=None, y=None):
-        # I do not know what is the "super" object
         super(Dot, self).__init__()
 
         self.surf = pygame.Surface((
@@ -148,10 +161,11 @@ class Dot(pygame.sprite.Sprite):
             FIELD_ITEM_HEIGHT
         ))
 
-        self.surf.fill((255, 0, 0))
+        self.surf.fill((255, 0, 0))  # red
         self.rect = self.surf.get_rect()
-        self.surf.set_alpha(255)
+        self.surf.set_alpha(255)  # clearly
 
+        # If some position was defined as a argument for the Dot class
         if x is not None is not y:
             SCREEN_MAP[x][y] = -1
         else:
@@ -166,8 +180,8 @@ class Dot(pygame.sprite.Sprite):
 
 
 # Event handler
-def event_processing():
-    # process events
+def event_processing(snake):
+    # process keyboard events
     for event in pygame.event.get():
         # if key pressed
         if event.type == KEYDOWN and not args.auto:
@@ -192,6 +206,12 @@ def event_processing():
     return True
 
 
+def show_score(snake):
+    font1 = pygame.font.Font(None, 50)
+    text1 = font1.render(f"Score {int(snake.length / 5 - 1)}", 0, (255, 255, 255))
+    text1.set_alpha(90)
+    screen.blit(text1, (10, SCREEN_HEIGHT - 50))
+
 def main():
     """
     the main function. The Snake game
@@ -199,18 +219,25 @@ def main():
     # Init pygame module
     pygame.init()
 
+    # Make one point on the Snake field
     point = pygame.Surface((
         FIELD_ITEM_WIDTH,
         FIELD_ITEM_HEIGHT
     ))
 
     # Setup Target
-    target = Dot()
+    target = Dot(7, 7)
 
     # Setup Snake
     snake = Snake(FIELD_WIDTH // 2, FIELD_HEIGHT // 2)
 
     def ai_move(tgt, snk) -> tuple:
+        """
+        Make a snake move to target
+        :param tgt: Target position. For ex.: (15, 19)
+        :param snk: Snake position. For ex.: (99, 40)
+        :return: Next Snake position close to Target
+        """
         tx, ty = tgt
         sx, sy = snk
         if tx > sx:
@@ -223,14 +250,13 @@ def main():
             return sx, sy - 1
 
     # main loop
-    while event_processing():
+    while event_processing(snake):
+        """ until event can be processed """
         if args.auto:
-            snake.x, snake.y = ai_move(target.position, snake.position)
-            if SCREEN_MAP[snake.x][snake.y] <= 0:
-                snake.position = snake.x, snake.y
-                SCREEN_MAP[snake.x][snake.y] = snake.length - 1
-            else:
-                raise EOFError
+            """ auto play is enabled """
+            SCREEN_MAP[snake.x][snake.y] = snake.length
+            snake.x, snake.y = auto_move(ai_move(target.position, snake.position))
+            snake.position = snake.x, snake.y
         else:
             snake.step()
 
@@ -246,28 +272,18 @@ def main():
 
         for i in range(0, FIELD_WIDTH):
             for j in range(0, FIELD_HEIGHT):
-                if args.dynamic:
-                    # Dynamic background
-                    point.fill((0, randint(90, 100), 20))
-                    screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
-                    # Draw the dot target if you using the Dynamic background
-                    if SCREEN_MAP[i][j] == -1:
-                        screen.blit(target.surf, target.get_position())
-
                 # Snake head
                 if (i, j) == snake.position:
-                    snake.surf.fill((255, 255, 0)) # Yellow
+                    snake.surf.fill((255, 255, 0))  # Yellow
                     screen.blit(snake.surf, snake.get_position())
 
                 # Snake tail control
                 if SCREEN_MAP[i][j] >= 0:
+                    SCREEN_MAP[i][j] -= 1
                     point.fill(snake.color)
                     screen.blit(point, [FIELD_ITEM_WIDTH * i, FIELD_ITEM_HEIGHT * j])
-                    SCREEN_MAP[i][j] -= 1
 
-        font1 = pygame.font.Font(None, 50)
-        text1 = font1.render(f"Score {int(snake.length / 5 - 1)}", 0, (255, 255, 255))
-        screen.blit(text1, (10, SCREEN_HEIGHT - 50))
+        show_score(snake)
 
         # Show the bitmap
         pygame.display.flip()
