@@ -11,90 +11,41 @@ from sqlalchemy import inspect
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.pool import StaticPool
-
-
-metadata = MetaData()
-
-
-#user_table = Table('user', metadata,
-#                   Column('id', Integer, primary_key=True),
-#                   Column('name', String),
-#                   Column('fullname', String)
-#                   )
-
-#print(user_table.c)
-
-#print(user_table.select())
-#print(user_table.delete())
-#print(user_table.insert())
-#print(user_table.update())
-
-# Define the DB engine
-#engine = create_engine('sqlite:///myUserDB.sqlite', convert_unicode=True)
-
-# Create all tables (from metadata)
-#metadata.create_all(engine)
-
-# Drop the table
-#user_table.drop(engine)
-
-# Create only user_table
-#user_table.create(engine)
-
-# Example with different types
-#fancy_table = Table('fancy', metadata,
-#                    Column('id', Integer, ForeignKey('user.id')), # Use tablename.field in the ForeignKey.
-#                    Column('key', String(50), primary_key=True),
-#                    Column('timestamp', DateTime),
-#                    Column('amount', Numeric(10, 2)),
-#                    Column('type', Enum('a', 'b', 'c'))
-#                    )
-#fancy_table.create(engine)
-
-#Index('idx', user_table.c.name, user_table.c.fullname)
-
-# Auto table. Load from existing table "fancy"
-#metadata2 = MetaData()
-#reflect_table = Table('fancy', metadata2, autoload=True, autoload_with=engine)
-#metadata2.create_all(engine)
-
-# Create all tables (from metadata)
-#metadata.create_all(engine)
-
-#inspector = inspect(engine)
-#print(inspector.get_table_names())
-#print(inspector.get_columns('fancy'))
-#print(inspector.get_foreign_keys('fancy'))
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 # Declarative DB. Creates automatically during the codding
 engine = create_engine('sqlite:///myUserDB.sqlite', poolclass=StaticPool, convert_unicode=True, echo=False)
-
-from sqlalchemy.orm import scoped_session, sessionmaker
 Base = declarative_base()
-Base.metadata.create_all(engine)
 
-db_session = scoped_session(sessionmaker(autocommit=False,
-                                         autoflush=True,
+# It's a requirement to use sessions!
+db_session = scoped_session(sessionmaker(autocommit=True, # Means automatically run session.commit()
+                                         autoflush=True, # Means automatically run session.flush() to write the file
                                          bind=engine))
+
+# The session cursor
 session = db_session()
 
 
 class User(Base): # inheriting from Base class is required
+    """
+    Relationships btw User and email. You unable to add one more user id/name field with the same data
+    """
     __tablename__ = 'userclass' # Table name also requirement
 
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    name = Column(String)
-    fullname = Column(String)
+    id = Column(Integer)
+    name = Column(String, primary_key=True, nullable=False, unique=True)
+    fullname = Column(String, nullable=True)
 
     email = relationship("Email", backref="userclass", order_by="Email.id")
 
     def __init__(self, name, fullname):
-        #super(User, self).__init__() # not an requrement. Optional
+        super(User, self).__init__() # not an requirement. Optional
         self.name, self.fullname = name, fullname
         print(f"The User class from Basic")
 
     def __repr__(self):
+        # The func name it's a shortname of "represent" word.
         # print(f"{a=}") --> a=<__main__.User object at 0x7fbd930f0e50>
         # This function doing like this a=self.name='Test', self.fullname='Testing Testovich'
         return f"{self.name=}, {self.fullname=}, {self.email=}"
@@ -103,26 +54,50 @@ class User(Base): # inheriting from Base class is required
 class Email(Base):
     __tablename__ = 'mail'
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(ForeignKey('userclass.id'))
-    email_address = Column(String)
+    id = Column(Integer, primary_key=True, nullable=False)
+    user_id = Column(ForeignKey('userclass.id'), nullable=True)
+    email_address = Column(String, nullable=False)
 
     def __repr__(self):
         return f"{self.email_address}"
 
 
+# Create tables from declarative classes.
+Base.metadata.create_all(engine)
+
+# Start the session
+#session.begin(subtransactions=True)
+
+# User data
 mail1 = Email(email_address="box1@null.com")
 mail2 = Email(email_address="box2@null.com")
 mail3 = Email(email_address="box3@null.com")
-
 
 a = User(name="Test", fullname="Testing Testovich")
 a.email = [mail1, mail2, mail3]
 
 session.add(a)
+#session.commit()
 
-session.commit()
+mail4 = Email(email_address="box4@null.com")
 
-print(f"{a=}")
-print(f"{a.email=}")
+b = User("Test2", fullname="Testing2 Testovich")
+b.email = [mail4]
 
+#session.begin(subtransactions=True)
+session.add(b)
+#session.commit()
+
+# Search in the DB
+ourUser = session.query(User).filter_by(name="Test2").first()
+print(f"{ourUser=}")
+
+#for instance in session.query(User).order_by(User.id):
+#    print(f"{instance.name=}, {instance.fullname=}")
+
+#for row in session.query(User, User.name).all():
+#    print(f"{row.User}, {row.name}")
+
+# Select from two tables. User and Email in the same time. Using relationships.
+for id, name, fullname, email in session.query(User.id, User.name, User.fullname, User.email):
+    print(f"{id=}, {name=}, {fullname=}, email={session.query(Email).filter_by(user_id=id)}")
