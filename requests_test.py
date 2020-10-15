@@ -9,8 +9,10 @@ def get_google_image():
     png = Image.open(BytesIO(website.content))
     png.show()
 
+
 def main():
     print(f"Testing here")
+
 
 if __name__ == "__main__":
     main()

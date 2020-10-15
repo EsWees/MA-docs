@@ -212,6 +212,7 @@ def show_score(snake):
     text1.set_alpha(90)
     screen.blit(text1, (10, SCREEN_HEIGHT - 50))
 
+
 def main():
     """
     the main function. The Snake game
