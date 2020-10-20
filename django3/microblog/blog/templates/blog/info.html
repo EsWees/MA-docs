@@ -1,0 +1,13 @@
+{% extends "blog/base.html" %}
+
+{% block page %}
+    {% for i in post %}
+    <h1>Page block</h1>
+    <a>Post: {{ i.id }}</a><br />
+    <a>{{ i.title }}</a><br />
+    <a>{{ i.slug }}</a><br />
+    <a>{{ i.publish }}</a><br />
+    <a>{{ i.body }}</a><br />
+    <p />
+    {% endfor %}
+{% endblock %}

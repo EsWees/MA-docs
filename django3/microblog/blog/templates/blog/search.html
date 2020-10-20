@@ -1,0 +1,10 @@
+{% extends "blog/base.html" %}
+
+{% block page %}
+    <h1>Search a post</h1>
+    <form action="info" method="post">
+        {% csrf_token %}
+        <p><input type="text" name="search" placeholder="Put your request here"></p>
+        <p><input type="submit"></p>
+    </form>
+{% endblock %}
