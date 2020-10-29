@@ -1,0 +1,13 @@
+{% extends "blog/base.html" %}
+
+{% block page %}
+    <h1>Edit the post</h1>
+    <form action="create" method="post">
+        {% csrf_token %}
+        <p><input type="test" name="title" placeholder="Enter the title"><p>
+        <p><input type="text" name="slug"  placeholder="Put yours slug"></p>
+        <p><textarea name="body" placeholder="Body place holder" cols="40" rows="3"></textarea></p>
+        <p><input type="submit"></p>
+    </form>
+
+{% endblock %}
