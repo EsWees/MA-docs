@@ -15,7 +15,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 
 # Declarative DB. Creates automatically during the codding
-engine = create_engine('sqlite:///myUserDB.sqlite', poolclass=StaticPool, convert_unicode=True, echo=False)
+engine = create_engine('sqlite:///db/myUserDB.sqlite', poolclass=StaticPool, convert_unicode=True, echo=False)
 Base = declarative_base()
 
 # It's a requirement to use sessions!
