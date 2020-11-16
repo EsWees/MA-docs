@@ -130,10 +130,12 @@ class Field:
         return -1, -1
 
     def get_cell_number_from_coordinates(self, x, y) -> int:
-        # TODO: Needs to optimize this part of code. Maybe named dict and move to __init__
+        print(f"{x=}, {y=}")
+        cn = 0
         for c in self.cells:
             if c.x == x and c.y == y:
-                return c.__number__ -1
+                return cn -1
+            cn += 1
 
 
 class Apple:
@@ -182,49 +184,46 @@ class Snake:
     def get_position(self):
         return self.cell.get_position()
 
+    def step(self, field):
+        #self.move
+        print(f"{self.x=}, {self.y=}, {self.__head_in_cell__=}")
+        cell_num = field.get_cell_number_from_coordinates(self.x, self.y)
+        self.__head_in_cell__ = cell_num
+        field.set_value_by_cell_number(self.length, self.__head_in_cell__)
+        self.cell = field.get_cell_by_number(cell_num)
+        self.cell.change_color(self.color)
+
     def move_right(self, field):
-        if self.x < field.__height__ - 1 and \
+        if self.x < field.__width__ - 1 and \
                 field.cells[field.get_cell_number_from_coordinates(self.x + 1, self.y)].value < 1:
-            cell_num = field.get_cell_number_from_coordinates(self.x + 1, self.y)
-            self.__head_in_cell__ = cell_num
-            field.set_value_by_cell_number(self.length, self.__head_in_cell__)
             self.x += 1
         else:
             raise IndexError
+        self.step(field)
 
     def move_left(self, field):
         if self.x > 0 and \
                 field.cells[field.get_cell_number_from_coordinates(self.x - 1, self.y)].value < 1:
-            cell_num = field.get_cell_number_from_coordinates(self.x - 1, self.y)
-            self.__head_in_cell__ = cell_num
-            field.set_value_by_cell_number(self.length, self.__head_in_cell__)
             self.x -= 1
         else:
             raise IndexError
+        self.step(field)
 
     def move_up(self, field):
-        print(f"field.cells[{field.get_cell_number_from_coordinates(self.x, self.y - 1)}].value")
         if self.y > 0 and \
                 field.cells[field.get_cell_number_from_coordinates(self.x, self.y - 1)].value < 1:
-            cell_num = field.get_cell_number_from_coordinates(self.x, self.y - 1)
-            self.__head_in_cell__ = cell_num
-            field.set_value_by_cell_number(self.length, self.__head_in_cell__)
             self.y -= 1
         else:
             raise IndexError
+        self.step(field)
 
     def move_down(self, field):
         if self.y < field.__width__ - 1 and \
                 field.cells[field.get_cell_number_from_coordinates(self.x, self.y + 1)].value < 1:
-            cell_num = field.get_cell_number_from_coordinates(self.x, self.y + 1)
-            self.__head_in_cell__ = cell_num
-            field.set_value_by_cell_number(self.length, self.__head_in_cell__)
             self.y += 1
         else:
             raise IndexError
-
-    def step(self, field):
-        self.move(field)
+        self.step(field)
 
     # Speed
     @property
@@ -265,8 +264,8 @@ class MainWindow:
         self.screen.fill((0, 100, 0))
 
         self._field = Field()
-        self._snake = Snake(self._field, 15)
-        self._apple = Apple(self._field, 40)
+        self._snake = Snake(self._field, 28)
+        self._apple = Apple(self._field, 63)
         self.game = True
         self.__score__ = 0
 
@@ -284,19 +283,15 @@ class MainWindow:
                 if event.type == KEYDOWN:
                     if event.key == K_ESCAPE:
                         game = False
-                        continue
+                        break
                     elif event.key == K_UP:
-                        if DEBUG: print(f"{event.key=}")
-                        self.m = self._snake.move_up
+                        self._snake.move_up(self._field)
                     elif event.key == K_DOWN:
-                        if DEBUG: print(f"{event.key=}")
-                        self.m = self._snake.move_down
+                        self._snake.move_down(self._field)
                     elif event.key == K_LEFT:
-                        if DEBUG: print(f"{event.key=}")
-                        self.m = self._snake.move_left
+                        self._snake.move_left(self._field)
                     elif event.key == K_RIGHT:
-                        if DEBUG: print(f"{event.key=}")
-                        self.m = self._snake.move_right
+                        self._snake.move_right(self._field)
                 elif event.type == QUIT:
                     game = False
             self._snake.step(self._field)
